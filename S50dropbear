@@ -1,0 +1,28 @@
+#!/bin/sh
+# dropbear sshd (pkgforge static aarch64), key-only root login on :2222
+
+DAEMON=/usr/sbin/dropbear
+KEYDIR=/etc/dropbear
+HOSTKEY=$KEYDIR/dropbear_ed25519_host_key
+PIDFILE=/var/run/dropbear.pid
+ARGS="-r $HOSTKEY -p 2222 -s -P $PIDFILE"
+
+start() {
+	mkdir -p $KEYDIR
+	[ -s $HOSTKEY ] || /usr/sbin/dropbearkey -t ed25519 -f $HOSTKEY >/dev/null 2>&1
+	printf "Starting dropbear: "
+	start-stop-daemon -S -q -p $PIDFILE -x $DAEMON -- $ARGS && echo OK || echo FAIL
+}
+
+stop() {
+	printf "Stopping dropbear: "
+	start-stop-daemon -K -q -p $PIDFILE && echo OK || echo FAIL
+	rm -f $PIDFILE
+}
+
+case "$1" in
+	start) start ;;
+	stop) stop ;;
+	restart|reload) stop; sleep 1; start ;;
+	*) echo "Usage: $0 {start|stop|restart}"; exit 1 ;;
+esac

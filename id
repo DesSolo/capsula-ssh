@@ -1,0 +1,16 @@
+#!/bin/sh
+# minimal id(1) in pure sh (busybox here has no id/awk); reads /proc/self/status
+while read k a _; do
+	case "$k" in Uid:) u=$a ;; Gid:) g=$a ;; esac
+done < /proc/self/status
+lookup() { # file id -> name
+	while IFS=: read n _ i _; do [ "$i" = "$2" ] && { echo "$n"; return; }; done < "$1"
+	echo "$2"
+}
+case "$1" in
+	-u) echo "$u" ;;
+	-g) echo "$g" ;;
+	-un|-nu) lookup /etc/passwd "$u" ;;
+	-gn|-ng) lookup /etc/group "$g" ;;
+	*) echo "uid=$u($(lookup /etc/passwd "$u")) gid=$g($(lookup /etc/group "$g"))" ;;
+esac
